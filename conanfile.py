@@ -31,6 +31,10 @@ class LibiconvConan(ConanFile):
                 replace_in_file(os.path.join(self.ZIP_FOLDER_NAME, "srclib", "stdio.in.h"), text_to_replace, replaced_text)
             
     def config(self):
+        try: # Try catch can be removed when conan 0.8 is released
+            del self.settings.compiler.libcxx 
+        except: 
+            pass
         if self.settings.os == "Windows":
             self.requires.add("winiconv/1.14.0@lasote/stable", private=False)
         
@@ -40,7 +44,7 @@ class LibiconvConan(ConanFile):
             libs = 'LIBS="%s"' % " ".join(["-l%s" % lib for lib in self.deps_cpp_info.libs])
             ldflags = 'LDFLAGS="%s"' % " ".join(["-L%s" % lib for lib in self.deps_cpp_info.lib_paths]) 
             archflag = "-m32" if self.settings.arch == "x86" else ""
-            cflags = 'CFLAGS="%s %s"' % (archflag, " ".join(self.deps_cpp_info.cflags))
+            cflags = 'CFLAGS="-fPIC %s %s"' % (archflag, " ".join(self.deps_cpp_info.cflags))
             cpp_flags = 'CPPFLAGS="%s %s"' % (archflag, " ".join(self.deps_cpp_info.cppflags))
             command = "env %s %s %s %s" % (libs, ldflags, cflags, cpp_flags)
         elif self.settings.os == "Windows" and self.settings.compiler == "Visual Studio":
@@ -80,5 +84,7 @@ class LibiconvConan(ConanFile):
     def package_info(self):
         if self.settings.os == "Linux" or self.settings.os == "Macos":
             self.cpp_info.libs = ['charset', 'iconv']
-            if self.settings.os == "Linux":
+            if self.settings.os == "Linux" or (self.options.shared and self.settings.os == "Macos"):
                 self.cpp_info.defines.append("LIBICONV_PLUG=1")
+
+
